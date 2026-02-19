@@ -33,7 +33,11 @@ import {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import type { FloatingButtonAnimationConfig, FloatingButtonScrollBehaviour } from './types';
+import type {
+  FloatingButtonAnimationConfig,
+  FloatingButtonHiddenTransition,
+  FloatingButtonScrollBehaviour,
+} from './types';
 
 // ---------------------------------------------------------------------------
 // Дефолтные значения анимации / Default animation values
@@ -98,14 +102,16 @@ export interface UseScrollHideResult {
 // ---------------------------------------------------------------------------
 
 /**
- * @param config           - Optional animation configuration.
- * @param externalHidden   - Programmatic hidden flag from props.
- * @param scrollBehaviour  - Controls whether scroll hides the button ('hide') or not ('none').
+ * @param config            - Optional animation configuration.
+ * @param externalHidden    - Programmatic hidden flag from props.
+ * @param scrollBehaviour   - 'hide' (default) or 'none'.
+ * @param hiddenTransition  - 'animated' (default) or 'instant'.
  */
 export function useScrollHide(
   config?: FloatingButtonAnimationConfig,
   externalHidden?: boolean,
   scrollBehaviour: FloatingButtonScrollBehaviour = 'hide',
+  hiddenTransition: FloatingButtonHiddenTransition = 'animated',
 ): UseScrollHideResult {
   // ---------------------------------------------------------------------------
   // Конфиг с фолбэком на дефолты / Config with fallback to defaults
@@ -312,41 +318,77 @@ export function useScrollHide(
   // ---------------------------------------------------------------------------
 
   /**
-   * RU: Следим за изменением externalHidden.
-   *     При первом маунте (hidden=false, дефолт) ничего не делаем —
-   *     кнопка уже видима (opacity = 1). Анимируем только реальный переход.
+   * Watch externalHidden changes.
    *
-   * EN: Watch externalHidden changes.
-   *     On first mount (hidden=false, default) do nothing —
-   *     the button is already visible (opacity = 1). Only animate real transitions.
+   * On first mount — store initial state without animation.
+   * If hidden=true on mount — snap to hidden instantly (nothing to animate from).
+   *
+   * On subsequent changes:
+   *   hiddenTransition='animated' (default) → call show()/hide() which use withTiming.
+   *   hiddenTransition='instant'            → snap opacity/translateY directly.
+   *
+   * On hidden → false: always reset scrollY, isScrolling, scrollDirection first
+   * so the button is guaranteed visible when returning to this screen/tab,
+   * even if the list was scrolled down and the button was hidden by scroll.
    */
   const prevHiddenRef = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
-    // RU: Первый вызов — запоминаем начальное состояние без анимации
-    // EN: First call — store initial state without triggering animation
+    // First call — initialise without animation.
     if (prevHiddenRef.current === undefined) {
       prevHiddenRef.current = externalHidden;
-      // RU: Если при маунте hidden=true — скрываем без анимации (мгновенно)
-      // EN: If hidden=true on mount — hide instantly without animation
       if (externalHidden) {
-        opacity.value = 0;
+        // Snap to hidden on mount — no animation needed.
+        opacity.value    = 0;
         translateY.value = translateYOffset;
       }
       return;
     }
 
-    // RU: Реагируем только на реальное изменение значения
-    // EN: Only react to actual value changes
+    // Only react to actual value changes.
     if (prevHiddenRef.current === externalHidden) return;
     prevHiddenRef.current = externalHidden;
 
     if (externalHidden) {
-      hide();
+      if (hiddenTransition === 'instant') {
+        cancelScheduledShow();
+        cancelAnimation(opacity);
+        cancelAnimation(translateY);
+        opacity.value    = 0;
+        translateY.value = translateYOffset;
+      } else {
+        hide();
+      }
     } else {
-      show();
+      // Reset scroll state so the button is always shown when re-entering,
+      // regardless of where the list was scrolled.
+      scrollY.value         = 0;
+      isScrolling.value     = false;
+      scrollDirection.value = 0;
+      cancelScheduledShow();
+
+      if (hiddenTransition === 'instant') {
+        cancelAnimation(opacity);
+        cancelAnimation(translateY);
+        opacity.value    = 1;
+        translateY.value = 0;
+      } else {
+        show();
+      }
     }
-  }, [externalHidden, hide, show, opacity, translateY, translateYOffset]);
+  }, [
+    externalHidden,
+    hiddenTransition,
+    hide,
+    show,
+    cancelScheduledShow,
+    opacity,
+    translateY,
+    translateYOffset,
+    scrollY,
+    isScrolling,
+    scrollDirection,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Очистка при анмаунте / Cleanup on unmount
