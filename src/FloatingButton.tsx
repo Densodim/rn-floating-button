@@ -105,6 +105,7 @@ export const FloatingButton = forwardRef<FloatingButtonRef, FloatingButtonProps>
       animationConfig,
       style,
       hidden = false,
+      scrollBehaviour = 'hide',
     } = props;
 
     // RU: Отступы от краёв / EN: Edge insets
@@ -120,7 +121,7 @@ export const FloatingButton = forwardRef<FloatingButtonRef, FloatingButtonProps>
     // ---------------------------------------------------------------------------
 
     const { scrollY, scrollDirection, isScrolling, animatedStyle, show, hide } =
-      useScrollHide(animationConfig, hidden);
+      useScrollHide(animationConfig, hidden, scrollBehaviour);
 
     // ---------------------------------------------------------------------------
     // Ref API

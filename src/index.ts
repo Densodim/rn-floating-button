@@ -56,6 +56,7 @@ export type {
   FloatingButtonHorizontalPosition,
   FloatingButtonInsets,
   FloatingButtonAnimationConfig,
+  FloatingButtonScrollBehaviour,
   ScrollEvent,
 } from './types';
 

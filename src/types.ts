@@ -14,6 +14,21 @@ import type { ReactNode } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, StyleProp, ViewStyle } from 'react-native';
 
 // ---------------------------------------------------------------------------
+// Scroll behaviour
+// ---------------------------------------------------------------------------
+
+/**
+ * Controls how the button reacts to scroll events.
+ *
+ * - `'hide'`  — default. Button hides on scroll down and reappears on scroll up
+ *               (after the debounce delay). Driven by react-native-reanimated on the UI thread.
+ * - `'none'`  — button is always visible regardless of scroll position.
+ *               The scroll handler is still connected so `scrollY` / `isScrolling` /
+ *               `scrollDirection` in context remain up-to-date for custom use.
+ */
+export type FloatingButtonScrollBehaviour = 'hide' | 'none';
+
+// ---------------------------------------------------------------------------
 // Позиционирование / Positioning
 // ---------------------------------------------------------------------------
 
@@ -153,6 +168,17 @@ export interface FloatingButtonProps {
    * @default false
    */
   hidden?: boolean;
+
+  /**
+   * Controls how the button reacts to scroll events.
+   *
+   * - `'hide'` — button hides on scroll down and reappears on scroll up (default).
+   * - `'none'` — button is always visible; scroll tracking still runs so context
+   *              values (`scrollY`, `isScrolling`, `scrollDirection`) remain usable.
+   *
+   * @default 'hide'
+   */
+  scrollBehaviour?: FloatingButtonScrollBehaviour;
 }
 
 // ---------------------------------------------------------------------------

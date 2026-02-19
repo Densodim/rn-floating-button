@@ -33,7 +33,7 @@ import {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import type { FloatingButtonAnimationConfig } from './types';
+import type { FloatingButtonAnimationConfig, FloatingButtonScrollBehaviour } from './types';
 
 // ---------------------------------------------------------------------------
 // Дефолтные значения анимации / Default animation values
@@ -98,14 +98,14 @@ export interface UseScrollHideResult {
 // ---------------------------------------------------------------------------
 
 /**
- * @param config - RU: Опциональная конфигурация анимации.
- *                 EN: Optional animation configuration.
- * @param externalHidden - RU: Флаг программного скрытия из пропов.
- *                         EN: Programmatic hidden flag from props.
+ * @param config           - Optional animation configuration.
+ * @param externalHidden   - Programmatic hidden flag from props.
+ * @param scrollBehaviour  - Controls whether scroll hides the button ('hide') or not ('none').
  */
 export function useScrollHide(
   config?: FloatingButtonAnimationConfig,
   externalHidden?: boolean,
+  scrollBehaviour: FloatingButtonScrollBehaviour = 'hide',
 ): UseScrollHideResult {
   // ---------------------------------------------------------------------------
   // Конфиг с фолбэком на дефолты / Config with fallback to defaults
@@ -134,6 +134,17 @@ export function useScrollHide(
 
   /** RU: Текущий сдвиг вниз / EN: Current downward translation */
   const translateY = useSharedValue(0);
+
+  /**
+   * Shared value mirror of the scrollBehaviour prop.
+   * Needed so the worklet (UI thread) can read it without a bridge call.
+   * Updated via useEffect whenever the prop changes.
+   */
+  const scrollBehaviourSV = useSharedValue<FloatingButtonScrollBehaviour>(scrollBehaviour);
+
+  useEffect(() => {
+    scrollBehaviourSV.value = scrollBehaviour;
+  }, [scrollBehaviour, scrollBehaviourSV]);
 
   // ---------------------------------------------------------------------------
   // Debounce-таймер на JS-потоке / Debounce timer on JS thread
@@ -225,35 +236,39 @@ export function useScrollHide(
       const delta = current - previous;
 
       if (Math.abs(delta) < 1) {
-        // RU: Слишком маленькое движение — игнорируем
-        // EN: Movement too small — ignore
+        // Movement too small — ignore
         return;
       }
 
+      // Always track direction and scrolling state so context consumers
+      // get accurate values even in 'none' mode.
       if (delta > 0) {
-        // RU: Скролл вниз — немедленно скрыть
-        // EN: Scrolling down — hide immediately
         scrollDirection.value = 1;
         isScrolling.value = true;
 
-        // RU: Отменяем ожидающий показ
-        // EN: Cancel any pending show
-        runOnJS(cancelScheduledShow)();
-
-        // RU: Скрываем: плавно уезжаем вниз + fade-out
-        // EN: Hide: slide down + fade-out
-        cancelAnimation(opacity);
-        cancelAnimation(translateY);
-        opacity.value = withTiming(0, { duration: hideDuration });
-        translateY.value = withTiming(translateYOffset, { duration: hideDuration });
+        if (scrollBehaviourSV.value === 'hide') {
+          // Cancel any pending show and hide the button immediately.
+          runOnJS(cancelScheduledShow)();
+          cancelAnimation(opacity);
+          cancelAnimation(translateY);
+          opacity.value = withTiming(0, { duration: hideDuration });
+          translateY.value = withTiming(translateYOffset, { duration: hideDuration });
+        }
       } else {
-        // RU: Скролл вверх — помечаем направление и планируем показ с debounce.
-        //     isScrolling остаётся true до момента когда debounce сработает.
-        // EN: Scrolling up — mark direction and schedule show with debounce.
-        //     isScrolling stays true until the debounce fires.
         scrollDirection.value = -1;
         isScrolling.value = true;
-        runOnJS(scheduleShow)();
+
+        if (scrollBehaviourSV.value === 'hide') {
+          // Schedule the reappear animation with debounce.
+          // isScrolling will be reset to false inside scheduleShow.
+          runOnJS(scheduleShow)();
+        } else {
+          // 'none' mode: nothing to animate, but still reset state
+          // so isScrolling doesn't stay true forever.
+          runOnJS(cancelScheduledShow)();
+          isScrolling.value = false;
+          scrollDirection.value = 0;
+        }
       }
     },
   );
