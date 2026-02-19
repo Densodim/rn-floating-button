@@ -1,6 +1,6 @@
 {
   "name": "rn-floating-button",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Floating action button with scroll-hide behaviour for React Native. Uses react-native-reanimated for 60fps animations. Accepts any custom button as children.",
   "main": "src/index.ts",
   "types": "src/index.ts",
