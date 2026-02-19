@@ -1,31 +1,34 @@
 /**
  * index.ts
  *
- * RU: Публичное API модуля rn-floating-button.
- *     Всё что здесь экспортируется — доступно потребителям.
- *     Внутренние детали реализации (FloatingButtonContext, useScrollHide)
- *     тоже экспортируются — для продвинутых кейсов интеграции.
- *
- * EN: Public API of the rn-floating-button module.
- *     Everything exported here is available to consumers.
- *     Internal implementation details (FloatingButtonContext, useScrollHide)
- *     are also exported — for advanced integration use-cases.
+ * Public API of the rn-floating-button module.
  */
 
 // ---------------------------------------------------------------------------
-// Компоненты / Components
+// Core component
+// ---------------------------------------------------------------------------
+
+export { FloatingButton } from './FloatingButton';
+
+// ---------------------------------------------------------------------------
+// Scroll wrappers
+// ---------------------------------------------------------------------------
+
+export { FloatingButtonScrollView }  from './FloatingButtonScrollView';
+export { FloatingButtonFlatList }    from './FloatingButtonFlatList';
+export { FloatingButtonSectionList } from './FloatingButtonSectionList';
+
+// ---------------------------------------------------------------------------
+// FlashList integration (optional peer dep @shopify/flash-list)
 // ---------------------------------------------------------------------------
 
 export {
-  FloatingButton,
-  FloatingButtonScrollView,
-  FloatingButtonFlatList,
-  FloatingButtonSectionList,
   FloatingButtonFlashList,
-} from './FloatingButton';
+  createFloatingList,
+} from './FloatingButtonFlashList';
 
 // ---------------------------------------------------------------------------
-// Контекст (для продвинутой интеграции) / Context (for advanced integration)
+// Context (advanced integration)
 // ---------------------------------------------------------------------------
 
 export {
@@ -34,20 +37,14 @@ export {
 } from './FloatingButtonContext';
 
 // ---------------------------------------------------------------------------
-// Хук анимации (для кастомной интеграции без компонента)
-// Animation hook (for custom integration without the component)
+// Hooks
 // ---------------------------------------------------------------------------
 
-export { useScrollHide } from './useScrollHide';
-
-// ---------------------------------------------------------------------------
-// Хук отступов над таб-баром / Tab bar insets helper hook
-// ---------------------------------------------------------------------------
-
+export { useScrollHide }     from './useScrollHide';
 export { useFloatingInsets } from './useFloatingInsets';
 
 // ---------------------------------------------------------------------------
-// Типы / Types
+// Types
 // ---------------------------------------------------------------------------
 
 export type {
@@ -57,6 +54,7 @@ export type {
   FloatingButtonInsets,
   FloatingButtonAnimationConfig,
   FloatingButtonScrollBehaviour,
+  FloatingButtonHiddenTransition,
   ScrollEvent,
 } from './types';
 
@@ -65,4 +63,4 @@ export type {
   UseFloatingInsetsResult,
 } from './useFloatingInsets';
 
-export type { FloatingButtonFlashListProps } from './FloatingButton';
+export type { FloatingButtonFlashListProps } from './FloatingButtonFlashList';
