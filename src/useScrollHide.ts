@@ -259,6 +259,11 @@ export function useScrollHide(
           cancelAnimation(translateY);
           opacity.value = withTiming(0, { duration: hideDuration });
           translateY.value = withTiming(translateYOffset, { duration: hideDuration });
+          // Schedule reappear so the button comes back once scrolling stops,
+          // even if the user never scrolls back up.
+          // Each new scroll-down event resets this timer via clearTimeout inside
+          // scheduleShow, so it only fires after showDelay ms of inactivity.
+          runOnJS(scheduleShow)();
         }
       } else {
         scrollDirection.value = -1;
